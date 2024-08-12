@@ -7,18 +7,26 @@ import json
 class MySyncConsumer(SyncConsumer):
 
     def websocket_connect(self, event):
-        print("websocket connected...", event)
-        print("channel Layer...", self.channel_layer)
-        print("channel Name...", self.channel_name)
-        async_to_sync(self.channel_layer.group_add)("test", self.channel_name)
+        # print("websocket connected...", event)
+        # print("channel Layer...", self.channel_layer)
+        # print("channel Name...", self.channel_name)
+        
+        self.group_name = self.scope['url_route']['kwargs']['name_of_group']
+        print(self.group_name)
+        
+        async_to_sync(self.channel_layer.group_add)(self.group_name, self.channel_name)
         self.send({"type": "websocket.accept"})
 
     def websocket_receive(self, event):
-        print("Message Received...", event)
-        print("mesage :", event["text"])
-        print(type(event["text"]))
+        # print("Message Received...", event)
+        # print("mesage :", event["text"])
+        # print(type(event["text"]))
         async_to_sync(self.channel_layer.group_send)(
-            "test", {"type": "chat.message", "message": event["text"]}
+            self.group_name, 
+            {
+                "type": "chat.message",
+                "message": event["text"]
+            }
         )
         # self.send(
         #     {
@@ -28,8 +36,8 @@ class MySyncConsumer(SyncConsumer):
         # )
 
     def chat_message(self, event):
-        print("Event.. ", event)
-        print("Message.. ", event['message'])
+        # print("Event.. ", event)
+        # print("Message.. ", event['message'])
         self.send(
             {
                 "type": "websocket.send",
@@ -38,10 +46,13 @@ class MySyncConsumer(SyncConsumer):
         )
 
     def websocket_disconnect(self, event):
-        print("websocket disconnected...", event)
-        print("channel Layer...", self.channel_layer)
-        print("channel Name...", self.channel_name)
-        async_to_sync(self.channel_layer.group_discard)("test", self.channel_name)
+        # print("websocket disconnected...", event)
+        # print("channel Layer...", self.channel_layer)
+        # print("channel Name...", self.channel_name)
+        async_to_sync(self.channel_layer.group_discard)(
+            self.group_name,
+            self.channel_name
+            )
         raise StopConsumer()
 
 
