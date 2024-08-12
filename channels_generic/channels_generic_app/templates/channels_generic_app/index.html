@@ -1,0 +1,99 @@
+{% extends "base.html" %} {% load static %} {% block content %}
+<section class="m-6">
+  <h1 class="text-lg font-semibold mb-4">Group Name: {{ group_name }}</h1>
+  <h1 class="text-md font-semibold mb-4">
+    User Name: {{request.user.username}}
+  </h1>
+
+  <div
+    id="message-show-area"
+    class="h-[300px] w-[90%] border-2 border-gray-300 rounded-lg p-4 overflow-y-auto bg-gray-50"
+  >
+    <!-- Messages will be displayed here -->
+  </div>
+
+  <div class="pt-4 flex items-center space-x-2">
+    <input
+      type="text"
+      placeholder="Enter your message:"
+      id="message-input"
+      class="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+    <input
+      type="button"
+      id="message-input-button"
+      value="Send"
+      class="bg-green-500 text-white px-4 py-2 rounded-md cursor-pointer hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+    />
+  </div>
+</section>
+
+{{ group_name|json_script:"group-name" }} '
+{{ request.user.username|json_script:"json-username" }}
+
+<script>
+  const inputField = document.querySelector("#message-input");
+  const messageBtn = document.querySelector("#message-input-button");
+  const messageArea = document.querySelector("#message-show-area");
+
+  const groupName = JSON.parse(
+    document.getElementById("group-name").textContent
+  );
+  console.log("Group Name:", groupName);
+
+  const userName = JSON.parse(
+    document.getElementById("json-username").textContent
+  );
+  console.log("User Name:", userName);
+
+  let current_user = userName;
+
+  const ws = new WebSocket(
+    "ws://" + window.location.host + "/ws/first_route_wsc/" + groupName + "/"
+  );
+
+  ws.onopen = () => {
+    console.log("Connection Open...");
+  };
+
+  ws.onmessage = (e) => {
+    console.log("Message received from server:", e);
+    const data = JSON.parse(e.data);
+
+    const messageElement = document.createElement("div");
+    messageElement.classList.add(
+      "mb-2",
+      "p-2",
+      "rounded-lg",
+      "max-w-xs",
+      "break-words"
+    );
+
+    actual_data =  data.msg.msg
+    fetched_user = data.msg.username
+    messageElement.textContent = actual_data
+
+    if (fetched_user === current_user) {
+      messageElement.classList.add("bg-blue-100", "text-right", "ml-auto");
+    } else {
+      messageElement.classList.add("bg-gray-200", "text-left");
+    }
+
+    messageArea.appendChild(messageElement);
+    messageArea.scrollTop = messageArea.scrollHeight;
+  };
+
+  ws.onclose = (e) => {
+    console.error("WebSocket connection closed unexpectedly:", e);
+  };
+
+  messageBtn.addEventListener("click", () => {
+    const message = inputField.value.trim();
+    if (message !== "") {
+      console.log("Sending message:", message);
+      ws.send(JSON.stringify({ msg: message, username: userName }));
+      inputField.value = "";
+    }
+  });
+</script>
+{% endblock content %}
